@@ -35,19 +35,9 @@ This buildpack installs the Microsoft ODBC 18 Driver for SQL Server on Heroku, e
    pyodbc>=4.0.39
    ```
 
-## Connection String Example
+## Connection String Example For SQLAlchemy
 
-```python
-connection_string = (
-    "Driver={ODBC Driver 18 for SQL Server};"
-    "Server=server.database.windows.net,1433;"
-    "Database=mydatabase;"
-    "UID=username;"
-    "PWD=password;"
-    "Encrypt=yes;"
-    "TrustServerCertificate=no;"
-)
-```
+database_uri = 'mssql+pyodbc://username:password@server.database.windows.net/mydatabase?driver=ODBC+Driver+18+for+SQL+Server'
 
 ## Security
 
@@ -63,7 +53,4 @@ If you encounter connection issues:
 2. Ensure all buildpacks are in the correct order
 3. Check your database firewall settings allow Heroku IPs
 
-## License
-
-This buildpack is MIT licensed. The Microsoft ODBC Driver is subject to Microsoft's license terms.
 # bhi-python-pyodbc-buildpack
