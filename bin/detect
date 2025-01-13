@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+echo "Microsoft ODBC 18 Driver"
+exit 0

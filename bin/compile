@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Functions
+function topic() {
+  echo "-----> $*"
+}
+
+function indent() {
+  sed -u 's/^/       /'
+}
+
+function error() {
+  echo " !     $*" >&2
+  exit 1
+}
+
+# Configuration
+DRIVER_VERSION="18.1.0.0"
+DRIVER_FILE="libmsodbcsql-18.1.so.1.1"
+RESOURCES_FILE="msodbcsqlr18.rll"
+
+# Expected SHA256 checksums for security verification
+DRIVER_SHA256="6c9f3ade72d7f693e815211494c29edd39518fdb6452d42628a6b62cf7b71988"
+RESOURCES_SHA256="d3b655df54277aa38279be4570a6caeb77677e65470644154797e891b36ce442"
+
+BUILD_DIR=$1
+if [ -z "$BUILD_DIR" ]; then
+  error "Build directory not specified"
+fi
+
+topic "Installing Microsoft ODBC Driver $DRIVER_VERSION for SQL Server"
+
+# Create necessary directories
+mkdir -p "${BUILD_DIR}/.apt/usr/lib/odbc/conf/" | indent
+mkdir -p "${BUILD_DIR}/.apt/usr/share/resources/en_US/" | indent
+
+# Verify and copy driver file
+echo "Verifying driver file checksum..." | indent
+if ! echo "$DRIVER_SHA256 $DRIVER_FILE" | sha256sum -c -; then
+  error "Driver file checksum verification failed"
+fi
+
+cp "$DRIVER_FILE" "${BUILD_DIR}/.apt/usr/lib/$DRIVER_FILE" | indent
+topic "Copied $DRIVER_FILE"
+
+# Verify and copy resources file
+echo "Verifying resources file checksum..." | indent
+if ! echo "$RESOURCES_SHA256 $RESOURCES_FILE" | sha256sum -c -; then
+  error "Resources file checksum verification failed"
+fi
+
+cp "$RESOURCES_FILE" "${BUILD_DIR}/.apt/usr/share/resources/en_US/$RESOURCES_FILE" | indent
+topic "Copied $RESOURCES_FILE"
+
+# Create and copy ODBC configuration
+cat > odbcinst.ini << EOL
+[ODBC Driver 18 for SQL Server]
+Description=Microsoft ODBC Driver 18 for SQL Server
+Driver=/app/.apt/usr/lib/$DRIVER_FILE
+UsageCount=1
+EOL
+
+cp odbcinst.ini "${BUILD_DIR}/.apt/usr/lib/odbc/conf/odbcinst.ini" | indent
+topic "Created ODBC configuration"
+
+# Set up profile script
+mkdir -p "${BUILD_DIR}/.profile.d" | indent
+cat > "${BUILD_DIR}/.profile.d/configure-odbc.sh" << EOL
+#!/bin/bash
+export ODBCSYSINI=/app/.apt/usr/lib/odbc/conf
+export ODBCINI=/app/.apt/usr/lib/odbc/conf/odbc.ini
+export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/app/.apt/usr/lib
+EOL
+
+chmod +x "${BUILD_DIR}/.profile.d/configure-odbc.sh" | indent
+topic "Created profile script"
+
+topic "Microsoft ODBC Driver $DRIVER_VERSION installation completed successfully"
